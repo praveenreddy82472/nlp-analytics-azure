@@ -27,4 +27,4 @@ COPY . /app
 EXPOSE 8501
 
 # Final command: run Streamlit app
-ENTRYPOINT ["streamlit", "run", "app/dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["streamlit", "run", "app/dashboard.py", "--server.port=8000", "--server.address=0.0.0.0"]
