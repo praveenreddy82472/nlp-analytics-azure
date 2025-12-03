@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Streamlit cache
+.streamlit/
+.streamlit-cache/
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Environment variables
+.env
+.env.*
+*.secret
+*.key
+
+# Logs
+*.log
+logs/
+
+# Byte-compiled
+*.so
+*.dll
+
+# Test / coverage
+.coverage
+.cache/
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# GitHub Actions temp
+.github/workflows/.temp/
+setup.txt
