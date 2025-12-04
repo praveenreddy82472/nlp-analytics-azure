@@ -12,8 +12,8 @@ env/
 ENV/
 
 # Streamlit cache
-.streamlit/
-.streamlit-cache/
+/.streamlit/
+/.streamlit-cache/
 
 # IDE settings
 .vscode/
