@@ -277,9 +277,15 @@ with tabs[9]:
         except Exception as e:
             st.error(f"Failed to save: {e}")
 
+    result_json = json.dumps(result, indent=2, ensure_ascii=False)
+
+    if "json_cache" not in st.session_state:
+        st.session_state["json_cache"] = result_json.encode("utf-8")
+
     st.download_button(
-        "⬇️ Download JSON",
-        json.dumps(result, indent=2, ensure_ascii=False).encode("utf-8"),
-        file_name="nlp_result.json",
-        mime="application/json"
+        "⬇️ Download results as JSON",
+        st.session_state["json_cache"],
+        file_name="nlp_analysis_result.json",
+        mime="application/json",
+        key="json_download"
     )

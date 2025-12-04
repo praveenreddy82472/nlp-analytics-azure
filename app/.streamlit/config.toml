@@ -10,3 +10,17 @@ address = "0.0.0.0"
 [browser]
 serverAddress = "0.0.0.0"
 serverPort = 8000
+
+[server]
+maxUploadSize = 50
+enableXsrfProtection = false
+enableCORS = false
+
+[runner]
+fastReruns = false
+
+[global]
+useFavicon = false
+
+[browser]
+gatherUsageStats = false
