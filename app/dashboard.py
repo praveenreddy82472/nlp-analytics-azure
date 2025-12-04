@@ -1,5 +1,13 @@
 # app/dashboard.py
 
+#---------------- PATH FIX FOR LOCAL RUN ----------------
+import sys, os
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))      # app/
+PARENT_DIR = os.path.dirname(ROOT_DIR)                     # project root
+if PARENT_DIR not in sys.path:
+    sys.path.insert(0, PARENT_DIR)
+    
+
 import json
 import tempfile
 from pathlib import Path
@@ -19,7 +27,7 @@ st.set_page_config(
 )
 
 st.title("🔍 Azure NLP Text Analytics Dashboard")
-st.write("Analyze text and documents using **Azure Language Service + Azure OpenAI**.")
+st.caption("Powered by Azure AI Language, Azure OpenAI, and Cosmos DB")
 
 
 # ---------------- Session State ----------------
@@ -30,131 +38,135 @@ if "analysis_result" not in st.session_state:
     st.session_state["analysis_result"] = None
 
 if "source_type" not in st.session_state:
-    st.session_state["source_type"] = None  # "text" or "file"
+    st.session_state["source_type"] = None
 
 if "file_name" not in st.session_state:
     st.session_state["file_name"] = None
 
 
 # ---------------- Sidebar ----------------
-st.sidebar.header("Input")
+st.sidebar.header("📥 Input Options")
+
 input_mode = st.sidebar.radio(
-    "Choose input type",
+    "Select Input Type",
     ["Paste text", "Upload file"],
     index=1
 )
 
-
-# ---------------- Input Handling ----------------
 if input_mode == "Paste text":
     default_text = (
-        "Hi, my name is Rahul Sharma and I live in Hyderabad. "
-        "My phone number is 98765-12345."
+        "Hello, my name is Rahul Sharma. I currently live in Hyderabad and work as a data analyst "
+    "at a healthcare startup. My contact number is 98765-12345 and my email is rahul.sharma@example.com. "
+    "I am planning to travel to Bengaluru next week for a client meeting. Overall, I feel excited "
+    "but a bit nervous about the presentation I need to deliver. "
+    "The company is particularly interested in patient data trends, risk predictions, and improving "
+    "medical decision support systems using AI solutions."
     )
-    text = st.text_area("Enter text:", value=default_text, height=200)
+    text = st.sidebar.text_area("Enter text:", value=default_text, height=150)
 
-    if st.button("Analyze text"):
+    if st.sidebar.button("Analyze Text"):
         st.session_state["uploaded_text"] = text
-        st.session_state["analysis_result"] = None  # reset
+        st.session_state["analysis_result"] = None
         st.session_state["source_type"] = "text"
         st.session_state["file_name"] = None
 
 else:
-    uploaded_file = st.file_uploader(
-        "Upload a file",
-        type=["txt", "pdf", "docx", "csv", "json"],
-        help="Supported: .txt, .pdf, .docx, .csv, .json"
+    uploaded_file = st.sidebar.file_uploader(
+        "Upload file",
+        type=["txt", "pdf", "docx", "csv", "json"]
     )
 
-    if uploaded_file is not None and st.button("Analyze file"):
+    if uploaded_file is not None and st.sidebar.button("Analyze File"):
         suffix = Path(uploaded_file.name).suffix
-
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(uploaded_file.getbuffer())
             tmp_path = tmp.name
 
-        try:
-            st.session_state["uploaded_text"] = load_text_from_file(tmp_path)
-            st.session_state["analysis_result"] = None  # reset
-            st.session_state["source_type"] = "file"
-            st.session_state["file_name"] = uploaded_file.name
-        except Exception as e:
-            st.error(f"Error reading file: {e}")
+        st.session_state["uploaded_text"] = load_text_from_file(tmp_path)
+        st.session_state["analysis_result"] = None
+        st.session_state["source_type"] = "file"
+        st.session_state["file_name"] = uploaded_file.name
 
 
 # Stop if no input
 if not st.session_state["uploaded_text"]:
-    st.info("⬆️ Upload a file or paste text, then click Analyze.")
+    st.info("⬅️ Add text or upload a file to start analysis.")
     st.stop()
 
 
 # ---------------- Run NLP Analysis ----------------
 if st.session_state["analysis_result"] is None:
-    with st.spinner("Analyzing with Azure NLP..."):
-        try:
-            st.session_state["analysis_result"] = analyze_text_all(
-                st.session_state["uploaded_text"]
-            )
-        except Exception as e:
-            st.error(f"Error calling Azure services: {e}")
-            st.stop()
-
+    with st.spinner("Running Azure NLP Analysis..."):
+        st.session_state["analysis_result"] = analyze_text_all(
+            st.session_state["uploaded_text"]
+        )
 
 result = st.session_state["analysis_result"]
 uploaded_text = st.session_state["uploaded_text"]
 
 
-# ---------------- Summary (full width) ----------------
-st.subheader("📝 Summary (GPT-style)")
-summary = result.get("summary", [])
+# ---------------- UI Tabs ----------------
+tabs = st.tabs([
+    "🧭 Overview",
+    "🌐 Language",
+    "😊 Sentiment",
+    "🏷 Classification",
+    "🔑 Key Phrases",
+    "🏷 Entities",
+    "🛡 PII Detection",
+    "🌍 Translation",
+    "📄 Raw Text & JSON",
+    "💾 Save / Export"
+])
 
-if summary:
-    for i, sent in enumerate(summary, start=1):
-        st.write(f"{i}. {sent}")
-else:
-    st.write("No summary available.")
+# ---------------- TAB: Overview ----------------
+with tabs[0]:
+    st.header("🧭 Overview")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("Summary (GPT-style)")
+        summary = result.get("summary", [])
+        if summary:
+            for i, sent in enumerate(summary, start=1):
+                st.write(f"{i}. {sent}")
+        else:
+            st.write("No summary available.")
+
+    with col2:
+        st.subheader("Detected Topics")
+        if result.get("classification"):
+            st.write(f"**Predicted Category:** `{result['classification']['label']}`")
+            st.write(f"**Confidence:** {result['classification']['confidence']:.2f}")
+        else:
+            st.write("No classification detected.")
 
 
-# ---------------- ROW 1: Language + Multi-language ----------------
-row1_col1, row1_col2 = st.columns(2)
+# ---------------- TAB: Language ----------------
+with tabs[1]:
+    st.header("🌐 Language Detection")
 
-with row1_col1:
-    st.subheader("🌐 Detected Language")
     lang = result.get("language", {})
     if lang:
-        st.metric(
-            label="Dominant Language",
-            value=f"{lang.get('name')} ({lang.get('iso6391')})",
-            delta=f"Confidence: {lang.get('confidence'):.2f}",
-        )
-    else:
-        st.write("No language detected.")
+        st.metric("Primary Language", f"{lang['name']} ({lang['iso6391']})")
+        st.metric("Confidence", f"{lang['confidence']:.2f}")
 
-with row1_col2:
-    st.subheader("🈯 Multi-language Breakdown")
-
+    st.subheader("Multi-language Breakdown")
     ml = result.get("multi_language", [])
-    if ml and len(ml) > 1:
+    if ml:
         ml_df = pd.DataFrame(ml).set_index("language")[["confidence"]]
         st.bar_chart(ml_df)
-    elif ml and len(ml) == 1:
-        st.metric(
-            label="Only one language detected",
-            value=f"{ml[0]['language']} ({ml[0]['iso6391']})",
-            delta=f"Confidence: {ml[0]['confidence']:.2f}",
-        )
     else:
-        st.info("No multi-language content detected.")
+        st.info("No multilingual content detected.")
 
 
-# ---------------- ROW 2: Sentiment + Classification ----------------
-row2_col1, row2_col2 = st.columns(2)
+# ---------------- TAB: Sentiment ----------------
+with tabs[2]:
+    st.header("😊 Sentiment Analysis")
 
-with row2_col1:
-    st.subheader("📊 Sentiment")
     sent_scores = result["sentiment"]["scores"]
-
-    sent_df = pd.DataFrame({
+    sentiment_df = pd.DataFrame({
         "sentiment": ["positive", "neutral", "negative"],
         "score": [
             sent_scores["positive"],
@@ -163,108 +175,111 @@ with row2_col1:
         ],
     }).set_index("sentiment")
 
-    st.bar_chart(sent_df)
+    st.bar_chart(sentiment_df)
 
-with row2_col2:
-    st.subheader("🧩 Text Classification (Single Label)")
 
-    cls = result.get("classification", {})
+# ---------------- TAB: Classification ----------------
+with tabs[3]:
+    st.header("🏷 Text Classification")
+
+    cls = result.get("classification")
     if cls:
-        st.write(f"**Predicted Category:** `{cls.get('label')}`")
-        st.write(f"**Confidence:** {cls.get('confidence'):.2f}")
-        st.write(f"**Explanation:** {cls.get('explanation')}")
+        st.write(f"**Label:** {cls['label']}")
+        st.write(f"**Confidence:** {cls['confidence']:.2f}")
+        st.write(f"**Explanation:** {cls['explanation']}")
     else:
-        st.write("No classification available.")
+        st.info("No classification available.")
 
 
-# ---------------- Translation (Automatic) ----------------
-st.subheader("🌍 Translation")
+# ---------------- TAB: Key Phrases ----------------
+with tabs[4]:
+    st.header("🔑 Key Phrases")
 
-language_map = {
-    "English": "en",
-    "Spanish": "es",
-    "French": "fr",
-    "Hindi": "hi",
-    "Arabic": "ar",
-    "Japanese": "ja",
-    "Tamil": "ta",
-    "Telugu": "te",
-    "German": "de",
-    "Chinese": "zh",
-}
-
-selected_lang = st.selectbox(
-    "Select target language",
-    list(language_map.keys()),
-    index=0,
-)
-
-target_lang_code = language_map[selected_lang]
-
-if uploaded_text:
-    translated_output = translate_text(uploaded_text, target_lang_code)
-    st.success(translated_output)
-else:
-    st.info("Upload text to enable translation.")
+    kp = result.get("key_phrases", [])
+    if kp:
+        cols = st.columns(3)
+        for i, phrase in enumerate(kp):
+            cols[i % 3].markdown(f"- `{phrase}`")
+    else:
+        st.write("No key phrases found.")
 
 
-# ---------------- KEY PHRASES ----------------
-st.subheader("🔑 Key Phrases")
+# ---------------- TAB: Entities ----------------
+with tabs[5]:
+    st.header("🏷 Named Entities")
 
-key_phrases = result.get("key_phrases", [])
-if key_phrases:
-    cols = st.columns(4)
-    for i, phrase in enumerate(key_phrases):
-        cols[i % 4].markdown(f"- `{phrase}`")
-else:
-    st.write("No key phrases found.")
-
-
-# ---------------- ENTITIES + PII ----------------
-ent_col, pii_col = st.columns(2)
-
-with ent_col:
-    st.subheader("🏷 Named Entities")
     entities = result.get("entities", [])
     if entities:
         st.dataframe(pd.DataFrame(entities), use_container_width=True)
     else:
         st.write("No entities detected.")
 
-with pii_col:
-    st.subheader("🛡 PII Entities")
+
+# ---------------- TAB: PII ----------------
+with tabs[6]:
+    st.header("🛡 PII Detection")
+
     pii = result.get("pii", [])
     if pii:
         st.dataframe(pd.DataFrame(pii), use_container_width=True)
     else:
-        st.write("No PII entities detected.")
+        st.write("No PII entities found.")
 
 
-# ---------------- RAW TEXT + JSON DOWNLOAD ----------------
-with st.expander("📄 View raw text"):
+# ---------------- TAB: Translation ----------------
+with tabs[7]:
+    st.header("🌍 Translate Text")
+
+    language_map = {
+        "English": "en",
+        "Spanish": "es",
+        "French": "fr",
+        "Hindi": "hi",
+        "Arabic": "ar",
+        "Japanese": "ja",
+        "Tamil": "ta",
+        "Telugu": "te",
+        "German": "de",
+        "Chinese": "zh",
+    }
+
+    selected_lang = st.selectbox(
+        "Select output language",
+        list(language_map.keys())
+    )
+
+    translated_output = translate_text(uploaded_text, language_map[selected_lang])
+    st.success(translated_output)
+
+
+# ---------------- TAB: Raw Data ----------------
+with tabs[8]:
+    st.header("📄 Raw Text")
     st.text(uploaded_text[:5000])
 
-result_json = json.dumps(result, indent=2, ensure_ascii=False)
-
-st.download_button(
-    label="⬇️ Download results as JSON",
-    data=result_json.encode("utf-8"),
-    file_name="nlp_analysis_result.json",
-    mime="application/json",
-)
+    st.subheader("JSON Output")
+    st.json(result)
 
 
-# ---------------- SAVE TO COSMOS DB ----------------
-from app.cosmos_client import save_analysis_to_cosmos
-st.subheader("Analysis")
-if st.button("Save analysis to CosmosDB"):
-    try:
-        doc_id = save_analysis_to_cosmos(
-            result=result,
-            raw_text=uploaded_text,
-            source_type=st.session_state.get("source_type", "text"),
-            file_name=st.session_state.get("file_name"),
-        )
-        st.success(f"Saved to CosmosDB with id: {doc_id}")
-    except Exception as e:
-        st.error(f"Failed to save: {e}")
+# ---------------- TAB: Save / Export ----------------
+with tabs[9]:
+    st.header("💾 Save Analysis")
+
+    if st.button("Save to Cosmos DB"):
+        try:
+            doc_id = save_analysis_to_cosmos(
+                result=result,
+                raw_text=uploaded_text,
+                source_type=st.session_state["source_type"],
+                file_name=st.session_state["file_name"]
+            )
+            st.success(f"Saved! Document ID: {doc_id}")
+        except Exception as e:
+            st.error(f"Failed to save: {e}")
+
+    st.download_button(
+        "⬇️ Download JSON",
+        json.dumps(result, indent=2, ensure_ascii=False).encode("utf-8"),
+        file_name="nlp_result.json",
+        mime="application/json"
+    )
