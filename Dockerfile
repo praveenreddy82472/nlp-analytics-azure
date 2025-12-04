@@ -8,6 +8,9 @@ ENV PYTHONUNBUFFERED=1
 # Set work directory
 WORKDIR /app
 
+# Make /app importable as a Python module root (so 'import app.*' works)
+ENV PYTHONPATH="/app"
+
 # Install system dependencies (optional but helpful for some packages)
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -20,11 +23,11 @@ COPY requirements.txt /app/
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the whole project (Docker will respect .gitignore-like .dockerignore)
+# Copy the whole project
 COPY . /app
 
-# Expose Streamlit's default port
-EXPOSE 8501
+# Expose the port we ACTUALLY use with Streamlit
+EXPOSE 8000
 
-# Final command: run Streamlit app
+# Final command: run Streamlit app on port 8000
 ENTRYPOINT ["streamlit", "run", "app/dashboard.py", "--server.port=8000", "--server.address=0.0.0.0"]
