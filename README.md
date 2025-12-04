@@ -39,5 +39,15 @@ The app is fully containerized and deployed using Azure Container Apps + GitHub 
 
 ---
 
-## 📌 Architecture
+## 📌 Architecture ![Architecture Diagram](https://github.com/praveenreddy82472/nlp-analytics-azure/blob/main/final_archi.png)
 
+---
+
+## 📊 Use Cases
+
+- Customer feedback insights
+- Legal/HR document scanning
+- Healthcare/finance PII detection
+- Automated summarization
+- Multi-language systems
+- Enterprise NLP dashboards
